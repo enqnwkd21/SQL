@@ -1,0 +1,235 @@
+-- SQL 구분
+--1. DDL : create, drop, alter 즉시 반영, 취소 불가
+--2. DML : insert, update, delete, merge 
+--3. TCL : commit, rollback, savepoint
+--4. DQL : select
+      
+--1. DDL
+--1) create : 객체(테이블, 인덱스, 제약조건, 뷰, 시노님, ...)
+----
+--create table 테이블명(
+--컬럼명     데이터타입      제약조건,
+--컬럼명     데이터타입      제약조건,
+--...
+--컬럼명     데이터타입      제약조건);   
+   
+create table test1(
+col1 varchar2(10) not null, 
+col2 number not null);  
+   
+CTAS(Create Table As Select)
+--컬럼이름, 컬럼순서, 컬럼 데이터 타입 복제 O
+--제약조건은 복제 X
+create table test02
+as
+select * from emp;-->emp테이블 복제
+
+select * from test02; -->emp테이블이랑 똑같이 나옴
+--
+create table test3
+as
+select ename, sal
+  from EMP
+ where deptno=10;
+ 
+select * from test3;
+--
+create table test4
+as
+select *
+  from EMP
+ where 1=2;     -- 항상 거짓인 조건을 전달하여 테이블의 구조만 복제(데이터는 복제X)
+ 
+
+--2) drop (테이블 자체를 날려버림)
+--한 번 drop한 테이블은 rollback으로 취소 불가
+--휴지통에 있어서 복구 가능(항상 가능한건 X)
+drop table test1;
+drop table test2 purge;  --영구 삭제(휴지통 거치지 않음)
+
+select * 
+  from user_recyclebin;  --휴지통
+
+--3)truncate 
+--테이블 구조는 남기고 데이터를 전체 삭제(일부 삭제 불가)
+--rollback으로 되돌릴 수 X
+--휴지통에서 복구 불가
+--delete는 삭제 시 삭제 데이터를 어딘가로 로깅, truncate는 로깅을 생략(가장 빠른 삭제 처리)
+--복구 불가
+create table emp_bak as select * from emp;
+truncate table emp_bak;
+
+select * from emp_bak;
+
+--4) alter
+-- 컬럼 추가 및 삭제, 컬럼 사이즈 변경, 컬럼 데이터 타입 변경, ...
+alter table emp_bak add (a varchar2(10));
+alter table emp drop column dname; --컬럼 삭제
+select * from emp_bak;
+
+alter user scott account unlock identified by oracle;
+
+--2. DML
+--1) insert
+insert into 테이블명 values(값1, 값2, 값3,...);
+insert into 테이블명 (컬럼1, 컬럼2, 컬럼2) values(값1, 값2, 값3,...);
+insert into 테이블명 select * from 테이블명;
+
+insert into emp_bak values(1111,'kim',null,null,sysdate,4000,0,null,null);--테이블 구조 순서 맞춰서
+commit; 하면 다른 세션에서도 row추가 됨(저장)
+select * from emp_bak;
+
+insert into emp_bak(empno, ename) values(1112,'park');
+
+alter table emp_bak drop column a;  --컬럼 삭제
+insert into emp_bak select * from emp where deptno=10;
+commit;
+
+--emp_bak에 emp 테이블의 20번 부서원의 사번, 이름 정보만 입력
+insert into emp_bak(empno, ename) 
+select empno, ename from emp where deptno=20;
+commit;
+
+--emp_bak에 emp 테이블의 30번 부서원의 사번, 이름 정보는 그대로, 연봉을 모두 5000, 부서번호 40번
+insert into emp_bak(empno, ename, sal, deptno) 
+select empno, ename, 5000, 40 from emp where deptno=30;
+commit;
+
+select * from emp_bak;
+
+
+--2) update : 수정
+update 테이블명
+   set 수정컬럼 = 수정값
+ where 조건;
+ 
+create table professor_bak3 as select * from professor;
+select * from professor_bak3;
+
+update professor_bak3
+   set bonus=100
+ where name = '박승곤'; 
+rollback;
+
+--문제
+--student_bak3 테이블 생성 후, 성별 컬럼을 추가한 뒤 각 학생의 성별을 남,여로 수정
+create table student_bak3 as select * from student;
+alter table student_bak3 add (gender varchar2(10));
+
+update student_bak3 s1
+   set GENDER = (select decode(substr(s1.jumin,7,1),'1','남','여')
+                   from student_bak3 s2
+                  where s1.studno = s2.studno);   --방법1
+
+select * from student_bak3;                 
+                  
+update student_bak3 s1
+   set GENDER = decode(substr(s1.jumin,7,1),'1','남','여'); --방법2
+   
+update student_bak3 s1
+   set GENDER = case substr(s1.jumin,7,1) when '1' then '남'
+                                                   else '여' end;                    --방법3
+ 
+--문제
+--professor_bak3테이블에서 각 교수의 보너스를
+--그 교수가 속한 학과의 보너스의 최댓값으로 수정
+update professor_bak3 p1
+   set bonus = (select max(bonus)
+                  from professor p2
+                 where p1.deptno=p2.DEPTNO);
+select * from professor_bak3;
+commit;
+
+-- 참고 ***
+delete from test11;
+create table test11(
+  col1 varchar2(10),
+  col2 number(10),
+  col3 date default sysdate
+);--기본 값(default)의 정의는 해당 값이 삽입되지 않았을 때 자동으로 부여되는 값
+
+delete from test11;
+insert into test11 values('a',10,to_date('2020/01/01','YYYY/MM/DD'));
+insert into test11 values('b',20,null);         --default 부여X 
+insert into test11(col1, col2) values('c',30);  --default 부여O
+commit;
+select * from test11;
+
+alter table test11 add(col4 number default 10);
+alter table test11 add(col5 number);
+alter table test11 modify col5 default 50;
+insert into test11(col1,col2) values('d',40);
+select * from test11;
+
+
+
+
+--3) delete : 데이터를 행 단위로 삭제(단 하나의 대상만 삭제 가능, 즉, 인라인뷰를 통한 삭제는 불가(단 하나만의 컬럼))
+delete from 테이블명;  --전체 행 삭제
+
+delete from 테이블명
+  where 조건;         --해당 조건에 맞는 데이터만 삭제
+  
+delete from emp_bak
+  where deptno = 40;
+  
+commit;
+
+delete from emp_bak;
+select * from emp_bak;
+
+rollback;
+
+
+--문제
+--student 테이블과 동일한(데이터 포함) student_bak테이블을 만들고
+--서재수와 같은 학년의 데이터를 모두 삭제
+create table student_bak as select * from student;
+
+delete from student_bak
+ where grade = (select grade from student where name = '서재수');
+ 
+commit;
+
+--문제
+--student_bak에서 각 학년별 키가 가장 큰 학생 삭제
+delete from student_bak
+  where (grade, height) in (select grade, max(height)
+                              from student             --참조해야할 테이블은 변경되지 않는 테이블이 better
+                             group by grade);       --student_back으로 하면 계속 그중에 가장 큰 키를 가지고있는 학생 지움
+
+--professor_bak 테이블을 만들고
+--professor_bak 에서 각 학과별 평균연봉보다 높은 연봉을 받는 교수 삭제
+create table professor_bak as select * from professor;
+
+select * from professor_bak;
+
+delete from professor_bak p1
+ where pay > (select avg(pay)
+                from professor p2
+               where p1.deptno=p2.DEPTNO);
+                 
+--emp_bak3 테이블을 만들고 
+--부서별 평균연봉보다 낮은 직원의 정보 삭제
+create table emp_bak3 as select * from emp;
+
+delete from emp_bak3 e1
+ where e1.sal < (select avg(e2.sal)
+                   from emp e2
+                  where e1.deptno = e2.deptno);
+                  
+commit;
+
+select * from emp_bak3;
+
+--참고 : mysql문법
+delete table1 t1, table2 t2
+  from t1 join t2
+    on condition
+ where condition;
+ 
+ 
+
+
+--4) merge
+--insert, update, delete 동시에 수행
