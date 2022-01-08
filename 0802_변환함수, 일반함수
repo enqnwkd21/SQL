@@ -1,0 +1,283 @@
+--날짜 포맷 : DBNS 마다 정해진 포맷이 있음 (접속 tool(orange)도 기본 날짜 포맷 존재)
+--oracle : YY/MM/DD
+--orange : YYYY/MM/DD HH24:MI:SS
+select sysdate,
+       substr(sysdate,1,4) as "year",           --substr은 잘못된 날짜의 추출을 할 수 있으므로 주의!!!이렇게만 하면 oracle 포맷으로 출력
+       extract(year from sysdate) as "year2",   --날짜 포맷과 상관없이 일정한 날짜의 일부를 추출할 수 있음
+       to_char(sysdate,'YYYY') as "year3"
+  from dual;
+  
+--to_char, to_date
+--to_char 
+--1. 문자가 아닌 값을 문자로 변경(날짜를 날짜의 형식을 변경하여 문자로 출력)
+--  -to_char(날짜, 날짜형식)
+--2. 문자가 아닌 값을 문자로 변경(숫자를 숫자의 형식을 변경하여 문자로 출력)
+--  -to_char(숫자, 숫자형식)
+  
+--to_date : 날짜가 아닌 값을 날짜로 인식 (인식, 파싱 parse)  
+--1. 날짜가 아닌 값을 날짜로 인식(문자를 날짜로 인식)
+select '2021/12/01' +50
+  from dual;                --조회X 문자+숫자
+
+select to_date('2021/12/01','YYYY/MM/DD')+50
+  from dual;
+  
+select to_char(to_date('2021/12/01','YYYY/MM/DD'), 'YY/MM-DD')
+  from dual;  
+
+select to_number('2021')+50
+  from dual;                --조회O 숫자처럼 생긴 문자를 to_number안해도 DBMS가 알아서 숫자로 바꿔줌
+
+
+--2. 날짜가 아닌 값을 날짜로 인식(숫자를 날짜로 인식)
+select to_date(20211220, 'YYYY/MM/DD')+50
+  from dual;
+  
+  
+--문제
+-- 1. professor 테이블에서 월요일에 입사한 교수 정보 입력
+alter session set nls_date_language='korean';
+select *
+  from professor
+ where to_char(hiredate, 'DAY')='월요일';
+ 
+alter session set nls_date_language='american';
+select *
+  from professor
+ where trim(to_char(hiredate, 'DAY'))='MONDAY';   --날짜의 영문 표기법은 불필요한 공백 삽입 유의! 
+  
+  
+-- 2. professor 테이블에서 2020년 12월 12일에 보너스 지급
+--보너스 = 보너스 지급일 기준 각 교수의 근속연수 * 50만원
+--교수이름, 직급, 보너스 출력
+select name, position, '2020-12-12', 
+       trunc((to_date('2020-12-12','YYYY-MM-DD')-hiredate)/365) as "근속 연수",
+       trunc((to_date('2020-12-12','YYYY-MM-DD')-hiredate)/365) * 50 as "bonus(만원)" 
+  from professor;
+  
+--변환 함수 : 데이터 타이(형)의 변환이 필요한 경우 사용
+--데이터 타입 변환 예
+--1. 문자 -> 숫자
+select '100'+1       --원래는 연산 오류 발생 => 숫자처럼 생긴 문자와 숫자의 연산의 경우 으로 인해
+  from dual;         --묵시적 형변환으로 인해 자동으로 문자가 숫자로 형 변환 발생!!
+   
+select to_number('100')+1
+  from dual;
+  
+select *
+  from student
+ where to_number(to_char(birthday,'MM'))=10;     --문자랑 숫자 비교 혹은 연산 경우 숫자에 맞춰 문자를 숫자화 시켜야함
+ 
+ select *
+  from student
+ where to_char(birthday,'MM')='10'; --이것도 가능
+ 
+ 
+--2. 문자 -> 날짜
+select to_date('2021/12/12')
+  from dual;
+  
+--3. 숫자 -> 문자
+select to_char(1) || 'a'    --원칙적으로 문자열 결합은 문자끼리 결합되는게 정상
+  from dual;                --oracle에서는 숫자와 문자의 결합도 가능하지만
+                            --먼저 숫자를 문자로 변환한 후 결합하는게 원칙!
+  
+--4. 숫자 -> 날짜
+select to_date(20211212)
+  from dual;
+  
+--5. 날짜 -> 숫자(X)
+
+--6. 날짜 -> 문자
+select to_char(sysdate, 'YYYY')
+  from dual;
+  
+--변환 함수 종류
+--1. to_char : 문자가 아닌 값을 문자로 변경
+--1) to_char(숫자[, 숫자포맷])
+select to_char(3000),
+       to_char(3000,'9,999'),    --','가 붙는 순간 숫자가 아닌 문자
+       to_char(3000,'9,999,999,999'),
+       to_char(3000,'99'),       -- 원본의 숫자보다 크거나 작은 자릿수 전달 시 값이 정확히 출력되지 않을 수 있음
+       to_char(3000,'9,999.99'), -- 소수점 기호
+       to_char(3000,'$9999'),    -- \기호는 포맷으로 인정X, 따로 문자열 결합으로 표현
+       to_char(3000,'000000'),   --부족한 자리수를 '0'으로 채움(09999=>03000)
+       to_char(3000,'999999')    --부족한 자리수를 공백으로 채움
+  from dual;
+  
+--2) to_char(날짜, 날짜포맷)
+
+  
+--2. to_number (문자) : 인수 따로 X
+select to_number('123')
+  from dual;
+--예시)mean(문자컬럼) =>오류
+------sal 
+---   ->0 -> 숫자 컬럼으로 변경해야함
+
+--3. to_date
+--1) to_date (숫자, 포맷)
+--2) to_date (문자, 포맷)
+  
+
+--문제
+--1. emp 테이블에서 각 직원의 20% 인상된 급여에 대해 천단위 구분기호와 함께 출력
+select ename, sal, to_char(sal * 1.2,'9,999') as "20% 인상된 급여"
+  from emp;
+
+--2.professor 테이블의 교수번호를 6자리로 출력
+--1001 =>001001
+desc professor;
+select name, to_char(profno,'000000') as "교수번호"
+  from professor;
+  
+select name, to_char(profno,'099999') as "교수번호"
+  from professor;
+
+select name, lpad(to_char(profno), 6, '0') as "교수번호"
+  from professor;
+
+-- 일반함수
+--1. nvl: null 치환 함수
+--nvl(컬럼, 치환값)
+--!!주의!! : 컬럼의 데이터 타입과 치환값의 데이터 타입은 항상 일치하도록 작성
+select comm, nvl(comm,0)
+  from emp; --null값을 0으로 치환
+  
+select comm, nvl(comm,'d')
+  from emp;      -- 조회 불가 
+ 
+select comm, nvl(comm,'0')
+  from emp;      -- 원래는 조회 불가('0' =>to number('0') 묵시적 형변환 발생하면서 가능해짐)
+ 
+select sal, comm, sal + comm, sal + nvl(comm,0)
+  from emp;
+  
+select nvl(hpage, '홈페이지 없음')
+  from professor;
+  
+select nvl(hpage, 0)    
+  from professor;   --조회 가능. 문자 컬럼으로 리턴. 따라서 문자컬럼안에 숫자 삽입은 가능
+
+--2.nvl2 : null 치환 함수(확장형)
+--nvl2(대상,null이 아닐때 치환값,null일때 치환값)
+--주의!! : 치환1, 치환2값의 데이터 타입 서로 일치!!!
+--공백은 ('') 데이터 타입이 문자!
+select nvl(comm, 0),
+       nvl2(comm, 500, 0)
+  from emp;
+
+select nvl(comm, 0),
+       nvl2(comm, 500, 'a') --error:데이터 타입이 다름
+  from emp;
+  
+select nvl(comm, 0),
+       nvl2(comm, 'a', 500) --정상 수행, 두번째 인수의 데이터 타입이 최종 데이터 타입이 
+  from emp;                 --문자 ('a')컬럼에 숫자값(0) 삽입 가능
+
+--3. decode
+--조건문 : ~조건일때 ~하자 => if문 (SQL 존재X, decode함수로 대체),case문
+--PL/SQL에는 if문 존재
+--decode(대상, 조건1, 치환1,
+             --조건2, 치환2,
+             --조건3, 치환3,
+             --.....,
+             --그외치환);
+
+-- 단점 : decode안에 decode가 반복되는 경우, 성능 악화, 대소비교 불가, '='비교만 가능
+
+select comm, decode(comm, 0, 'A','B'),
+        decode(comm, 0, 'A',1000,'B',1400,'C','D')
+  from emp;
+  
+-- decode(대상, 1,1,'A', decode(대상2,10,'B'),,,
+-- 
+--연봉이 500이상 => 'A'
+--           미만 =>자동차 소유 O => 'B'
+--                  자동차 소유 X =>'C'
+ 
+--1. EMP 테이블에서 각 직원이름, 사번, sal, 부서명 출력
+--단, 부서명은 새로 가공한 컬럼 (10번일때는 인사무, 20번은 총무부, 30번은 재무부)
+select ename, empno, sal, deptno,
+       decode(deptno, 10, '인사무',20,'총무부', 30,'재무부','기타') as "부서명"
+  from emp;
+  
+--범주형 자료 분석
+--분류분석
+--iris => (a,b,c)
+ 
+-- 2. student 테이블에서 
+-- 4학년이면서 12월 생이면 반장, 나머지는 반장후보 ,
+-- 4학년 미만은 후보아님이라는 값을 갖는 후보여부라는 컬럼을 이름과 학년, 생년월일과 함께 출력
+select name, grade, to_char(birthday,'MM'),
+       decode(grade,4, decode(to_char(birthday,'MM'),'12','반장','반장후보'),'후보아님') as "후보여부"
+   from student;
+   
+----[참고] : 문제 2번의 조건
+----grade = 4 and to_char(birthday, 'MM')= '12'=>'반장'
+----grade = 4 and to_char(birthday, 'MM') ! = '12'=>'반장후보'
+----grade != 4 =>'반장아님'
+
+--4. case문(case when then) : 조건이 복잡할수록 decode에 비해 성능, 높은 가독성, 다양한 연산 전달 가능
+--or, and조건 쓸 수 있음
+case when 조건1 then 치환1
+         when 조건2 then 치환2
+     ...
+                               else 나머지 치환
+ end
+ 
+--축약형 : 모든 조건 대산이 동일,'='비교이면 축약 가능
+case 대상 when 값1 then 치환1
+                  when 값2 then 치환2
+     ...
+                                    else 나머지 치환
+ end
+
+select ename, empno, sal, deptno
+       case when deptno = 10 then '인사부'
+            when deptno = 20 then '총무부'
+            when deptno = 30 then '재무부'
+                             else '기타'
+        end as "부서명2",                     
+       case deptno when 10 then '인사부'
+                   when 20 then '총무부'
+                   when 30 then '재무부'
+        end as "부서명3"                       --case문 축약형은 '='일때만 가능                
+  from emp;         --case문 사이에는 ','절대 삽입X
+  
+ --case문 주의!!
+ --축약형은 값과 치환값의 데이터 타입이 일치해야한다.
+select ename, empno, sal, deptno,
+       case when deptno = '10' then '인사부'
+            when deptno = '20' then '총무부'
+            when deptno = '30' then '재무부'
+                             else '기타'
+        end as "부서명2",                     
+       case deptno when '10' then '인사부'     --ERROR, deptno와 '10'의 데이터 타입 불일치
+                              when '20' then '총무부'
+                              when '30' then '재무부'
+        end as "부서명3"                                  
+  from emp;        
+ 
+ -- 2. student 테이블에서 
+-- 4학년이면서 12월 생이면 반장, 나머지는 반장후보 ,
+-- 4학년 미만은 후보아님이라는 값을 갖는 후보여부라는 컬럼을 이름과 학년, 생년월일과 함께 출력
+	--문제 2번의 조건
+	--grade = 4 and to_char(birthday, 'MM')= '12'=>'반장'
+	--grade = 4 and to_char(birthday, 'MM') ! = '12'=>'반장후보'
+	--grade != 4 =>'반장아님'
+desc student;
+select name, grade, to_char(birthday,'MM'),
+       case when to_char(birthday,'MM') ='12' and grade=4  then '반장'
+            when to_char(birthday,'MM') !='12'and grade =4 then '반장후보'
+                                                           else '후보아님'
+       end as "후보여부"
+  from student;
+
+
+
+
+
+
+
+
