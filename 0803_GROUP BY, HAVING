@@ -1,0 +1,239 @@
+-- group by : 그룹 연산
+-- 분리-적용-결합
+
+select
+  from
+ where
+ group by 컬럼1, 컬럼2,...--그룹을 분리할 컬럼 나열(ex. 성별, 학년별, 학과별,...)
+having  그룹조건          -- group by 결과에 추가 조건을 전달할 경우 사용
+ order by;
+ 
+-- emp 테이블에서 부서별 평균연봉(분리-적용)
+select deptno, avg(sal), sal -- error : group by 표현식이 아닙니다.
+  from emp                             -- group by에 사용하지 않은 컬럼은 select절에 단독으로 사용할 수 없다.               
+ group by deptno;                 -- =>group함수와 함께 사용하면 출력 가능
+----deptno는 group by에 축약되어 행이 3개인데, sal은 행이 14개 so,  group by함수와 같이 써야함
+ 
+select deptno, avg(sal), max(sal)
+  from emp                                  
+ group by deptno;           --가능
+ 
+select deptno, avg(sal), sal
+  from emp                                  
+ group by deptno, sal;      --문법적 에러는 발생 X, 의미상 부서별 그룹연산은 될 수 없다.
+ 
+-- 문제
+-- 1. student 테이블에서 학년별 학생수 출력
+select * from student;
+select grade, count(studno) as "학생수"
+  from student
+ group by grade
+ order by grade;
+ 
+-- 2. student 테이블에서 성별 평균키와 평균몸무게 출력
+desc student;
+select *
+  from student;
+ 
+select decode(substr(jumin,7,1),'1','남자','2','여자') as 성별,
+       round(avg(height),2) as 평균키, 
+       round(avg(weight),2) as 평균몸무게
+  from student
+ group by decode(substr(jumin,7,1),'1','남자','2','여자');  -- 남자, 여자로 바꿔놓고 grouping하는 방식
+ 
+ select decode(substr(jumin,7,1),'1','남자','2','여자') as 성별,
+       round(avg(height),2) as 평균키, 
+       round(avg(weight),2) as 평균몸무게
+  from student
+ group by substr(jumin,7,1);        -- 먼저 1,2로 grouping한 다음 나중에 남자, 여자로 바꾸는 방식
+  
+-- 3. professor 테이블에서 학과별 교수의 직급별 교수들의 평균월급(pay) 출력
+select * from professor;
+select deptno, position, avg(pay)
+  from professor
+ group by deptno, position;     -- group by에 나열되는 순서는 중요하지 않다
+ 
+-- having : 그룹연산에 대한 조건 사용 시 
+---- 부서별 평균연봉이 2000 이상인 부서를 평균연봉과 함께 출력
+select deptno, avg(sal)
+  from EMP
+ where avg(sal)>=2000;   --error. '그룹 함수는 허가되지 않습니다.'
+ group by deptno;        --원인 : where절이 group by절보다 먼저 수행되므로
+                         --       where절 실행 당시는 아직 avg(sal)을 모르는 상태!
+                
+select deptno, avg(sal)
+  from EMP
+ group by deptno
+ having avg(sal)>=2000;   --정상. having절에는 그룹함수를 사용한 조건 전달 가능
+ 
+-- 문제
+-- 1. professor 테이블에서 학과별 (deptno) 평균월급을 구하고 평균월급이 400이상인 학과와 평균연봉 출력
+select deptno from professor;
+select deptno, avg(pay)
+  from professor
+ group by deptno
+ having avg(pay) >=400;
+ 
+ --위 쿼리가 잘 이해되지 않으면,
+select deptno, pay, avg(pay)
+  from professor
+ group by deptno, pay;--NO : deptno와 pay까지 같아야 한 그룹으로 묶어버림
+
+-- 2. student 테이블에서 1학년을 제외한 학년에 대해 학년별 평균키 출력
+select * from student;
+select grade, avg(height)
+  from student
+ group by grade
+ having grade !=1;
+ 
+select grade, avg(height)
+  from student
+ where grade != 1
+ group by grade;            --where 결과와 having 결과가 같다면 where를 쓰는게 성능상 좋다
+
+
+
+연습문제
+
+--조인
+--1. A 테이블 데이터를 조회 시도 시 추가 정보가 다른 테이블에 있고 이 둘의 관계가 연결되어 있을 경우
+--   예) emp 테이블에서 사원번호, 이름을 조회 + 부서명 출력(부서명 emp에 존재 X => dept 테이블에서 가져옴)
+select e.ename, d.dname 
+  from emp e, dept d
+ where e.deptno = d.deptno; 
+
+--2. A 테이블 데이터 조회 시 A 테이블 조회 조건이 다른 테이블을 참조해야할 경우 
+--    예) emp 테이블에서 SALES 부서에 있는 직원 이름, 연봉 출력
+select e.ename, e.sal, e.deptno
+  from emp e, dept d
+ where e.deptno = d.deptno
+   and d.dname = 'SALES';
+
+--조인 + group by
+-- group by 뒤에 나열된 컬럼만이 컬럼 단독으로 select절에 사용 가능
+-- group by 뒤에 나열되지 않은 컬럼은 단독으로 select절에 사용 불가 => 그룹함수와 함께 사용
+select e.deptno, count(e.empno)
+  from emp e, dept d
+ where e.deptno = d.deptno
+group by e.deptno;
+
+select e.deptno, count(e.empno), d.dname
+  from emp e, dept d
+ where e.deptno = d.deptno
+group by e.deptno, d.dname;
+
+select deptno, max(sal), ename  
+  from emp
+ group by deptno, ename;
+
+--1) emp2, p_grade테이블을 사용하여 각 직원의 나이를 기준으로
+--직원의 이름, 사번, 생년월일, 나이, 현재 직급, 예상직급, 
+--예상 직급에 맞는 최저연봉과 최고연봉 기준을 모두 출력
+select e.name, e.empno, e.BIRTHDAY, 
+       trunc((sysdate - e.BIRTHDAY)/365) as 나이,
+       e.pay,
+       e.POSITION as 현재직급, 
+       p.POSITION as 예상직급,
+       p.S_pay as 최저연봉,
+       p.E_PAY as 최고연봉
+  from emp2 e, p_grade p
+ where trunc((sysdate - e.BIRTHDAY)/365) 
+       between p.S_AGE and p.E_AGE;
+       
+--s_age : 직급의 나이 최소 조건
+--e_age : 직급의 나이 최대 조건
+--s_year : 직급의 근속연수 최소 조건
+--e_year : 직급의 근속연수 최대 조건
+--s_pay : 해당 직급의 최소 연봉 기준
+--e_pay : 해당 직급의 최대 연봉 기준
+
+--2) gogak, gift 테이블을 사용하여 각 고객이 가져갈 수 있는 모든 상품을 출력한 후
+-- 만약 점주 입장에서 위 결과를 가지고 각 상품을 몇 개씩 준비해야하는지를 알아야 
+-- 한다면 어떻게 출력 가능할까요 => 각 상품별 개수
+select g1.*, g2.gname as 상품명
+  from gogak g1, gift g2
+ where
+ order by g1.gname;
+
+select g2.gname as 상품명, count(*)
+  from gogak g1, gift g2
+ where g1.point >= g2.G_START
+ group by g2.gname;
+ 
+-- 위 쿼리의 결과(상품별 수량)에서 상품번호를 함께 출력?
+select g2.gname as 상품명, g2.gno, count(*) 
+  from gogak g1, gift g2
+ where g1.point >= g2.G_START
+ group by g2.gname, g2.gno;
+
+-- 상품별 그룹핑 전달 형식
+--group by g2.gno
+--group by g2.gname
+--group by g2.gname, g2.gno
+
+-- 동명이인이 있을 경우 학생별 시험성적의 평균을 구하고자 할 때
+-- 올바른 group by 형태는
+
+--1. group by name           (X)
+--2. group by studno         (O)
+--3. group by name, studno   (O)
+
+--3) STUDENT, EXAM_01, HAKJUM 테이블을 사용하여
+--   각 학생의 이름, 학년, 시험점수, 학점을 모두 출력
+--s - e - h
+--1) oracle
+select s.name, s.grade, e.TOTAL, h.GRADE
+  from student s, exam_01 e, hakjum h
+ where s.STUDNO = e.STUDNO
+   and e.TOTAL between h.MIN_POINT and h.MAX_POINT;
+
+--2) ansi --!!!순서 바꿔보기(출력 결과 같음)
+select s.name, s.grade, e.TOTAL, h.GRADE
+  from student s join exam_01 e
+    on s.STUDNO = e.STUDNO
+  join hakjum h
+    on e.TOTAL between h.MIN_POINT and h.MAX_POINT;
+
+--4) 교수 입장에서 각 학점별 분배가 잘 되어있는지 확인하기 위해,
+--   A,B,C,D...학점별로 각 학생의 수를 출력 
+select substr(h.GRADE,1,1) as 학점, count(*) as 학생수
+  from student s, exam_01 e, hakjum h
+ where s.STUDNO = e.STUDNO
+   and e.TOTAL between h.MIN_POINT and h.MAX_POINT
+ group by substr(h.GRADE,1,1);
+
+--5) 레포트를 작성하고자 한다.
+--emp 테이블을 이용하여 각 부서별 직원수를 출력하되 
+--다음과 같은 형식으로 작성하여라.
+--
+--레포트명	       10_직원수	  20_직원수	  30_학생수
+------------------------------------------------------
+-- 레포트	     3	       5            6
+
+select deptno, count(ename)
+  from emp
+ group by deptno;
+ 
+
+ 방법 1
+select '양건희 레포트' as 레포트명,
+      count(decode(deptno,10,1)) as "10_직원수", 
+      count(decode(deptno,20,1)) as "20_직원수", 
+      count(decode(deptno,30,1)) as "30_직원수"
+  from EMP;     --decode에 else값 입력하면 안됨 ->count가 else값도 세어버리니까
+
+
+  방법 2
+select '양건희 레포트' as 레포트명, 
+       count(decode(deptno,10,'a')),
+       count(decode(deptno,20,'b')),
+       count(decode(deptno,30,'c'))
+  from emp;
+ 
+  방법 3
+ 
+select '양건희 레포트' as 레포트명, 
+        sum(decode(deptno,10,1)) as "10_직원수", 
+        sum(decode(deptno,20,1)) as "20_직원수", 
+        sum(decode(deptno,30,1)) as "30_직원수"
+  from emp; 
