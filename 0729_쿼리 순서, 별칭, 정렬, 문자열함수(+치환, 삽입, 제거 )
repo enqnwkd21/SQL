@@ -1,0 +1,413 @@
+select          * | 컬럼명 | 표현식(컬럼명과 * 이외의 것들 가능) -- 5
+  from          테이블명 또는 뷰명 (데이터를 최초로 조회하는 절) -- 1
+ where          조건 (일반조건)                                  -- 2
+ group by       특정 대상의 같은 그룹끼리 GROUPING하는 문법      -- 3
+having          조건을 추가하는 문법(GROUPING 결과에 대한 조건)  -- 4
+ order by 컬럼; 정렬 : 1차 정렬&2차정렬(1차 정렬의 결과가 같은 애들끼리 내부에서 다시 정렬 하는 것)--6   
+
+ 
+select *
+    from EMP;
+    
+--
+select 24*35 =>(표현식)
+    from dual; --특정 테이블이 존재하지 않아 형식상 쓰는 테이블 명. from을 생략할 수는 없으니!
+    
+select sal, sal * 1.1 =>(첫번째 컬럼에는 sal, 두번째 컬럼에는 sal*1.1)
+    from emp;
+    
+select sal, sal * 1.1 as "10% 인상된 연봉", upper(ename), 'abcd' --(무조건 행의 수를 emp에 맞춰야 하기 때문에 상수도 14개 행 모두 출력됨)
+    from emp;   
+--10% 뒤에는 무조건 띄어야함   
+    
+--컬럼 별칭 (alias)
+--원본의 컬럼명을 변경X
+--해당 select절의 출력 결과에서만 임시적으로 컬럼명을 변경
+--컬럼마다 하나씩 전달 가능
+--전달 방법 : 1) 컬럼명 별칭 (as 생략)
+                      2) 컬럼명 as 별칭 (추천)
+       
+select sal 연봉, ename as 이름, comm 보너스       
+    from emp;                    --컬럼 명 뒤에 한칸 띄고 별칭을 쓰면 alias로 인식하지만, as를 쓰는 것이 좋음
+   
+   
+--별칭에 쌍따옴표("")를 쓰는 3가지 경우
+select sal "연봉*",                          --특수 문자의 삽입
+       ename as "이 름",                    --공백을 갖는 경우
+       deptno as "department_no"      --대소를 그대로 전달 시
+  from emp;
+
+select sal as sal#
+  from emp;             --쌍따옴표 없이 인식이 되지만 "sal#"로 써야함
+  
+--문제
+--1) student 테이블에서 이름, 학년, 키, 몸무게, 표준몸무게를 출력
+--단, 표준몸무게는 (키 -100) * 0.9로 계산한다.
+select name, grade, height, weight, (height -100) * 0.9 as "AVERAGE WEIGHT"
+  from student;
+
+select name, grade, height, weight, (height -100) * 0.9 as "AVERAGE WEIGHT"
+  from student
+ where weight >= (height -100) * 0.9;
+ 
+  
+--2) emp 테이블에서 각 직원의 이름, 15% 인상된 연봉, 15% 인상된 연봉에 comm을
+--더한 값을 모두 출력한다.
+select ename as "이름", sal, sal * 1.15 as "15% 인상된 연봉", comm, (sal * 1.15) + comm 
+  from emp;
+  
+--null을 포함한 산술연산은 null을 return. 
+--SQL 예측지향형 언어가 아니기 때문에 어디에 저장해놓고 재사용을 하는 것이 불가
+
+select sum (comm) 
+  from emp;     --null을 포함한 컬럼의 sum, avg 함수의 결과는 null을 무시. 즉, null로 return하지 않음
+
+--distinct : 
+	-- select 절 바로 뒤에 '단 한번' 사용
+	-- distinct 뒤의 조합의 결과가 단 한 번만 출력되도록 (중복값 제거=중복되는 행이 제거)
+
+select distinct deptno
+  from emp;
+
+select distinct deptno, job
+  from emp;                 --deptno와 job 조합의 결과가 동일할 경우 단 한번만 출력되도록
+
+select distinct deptno, distinct job
+  from emp;                 --불가함 distinct는 한번 만 사용 가능
+
+--연결연산자 (||) : 양 옆에 있는 값을 하나로 연결하여 출력 (양 옆만 가능) 
+        --=>하나의 컬럼으로 만들기, 문자(text)를 연결
+        --where 절에 쓰는거X
+
+select ename, empno
+  from emp;
+  
+select ename || '__' || empno as "ENAME & EMPNO"
+  from emp;
+ 
+--문제
+--emp 테이블에서 모든 직원의 정보를 다음과 같이 출력
+--SMITH의 10% 인상된 연봉은 880이다. <= 이 문장을 복붙해서 쓰는것이 간편
+select ename ||'의 10% 인상된 연봉은' || sal * 1.1 ||'이다.' as result 
+  from emp;
+
+--문제
+--emp 테이블에서 모든 직원의 정보를 다음과 같이 출력
+--SMITH's 10% 인상된 연봉은 880이다. <= 이 문장을 복붙해서 쓰는것이 간편
+
+select ename ||'''s 10% 인상된 연봉은' || sal * 1.1 ||'이다.'
+  from emp;     --'''충돌을 방지하기 위해 한번 이상 더 사용
+
+
+--정렬
+select *
+  from emp
+ order by sal desc, hiredate desc;
+    
+select name, grade, height, weight, (height -100) * 0.9 as 표준몸무게
+  from student
+ order by (height -100) * 0.9 desc;
+  
+select name, grade, height, weight, (height -100) * 0.9 as 표준몸무게
+  from student
+ order by 표준몸무게 desc; --order by절에서는 select절에 정의된 컬럼 별칭을 사용할 수 있다. 
+  
+select name, grade, height, weight, (height -100) * 0.9 as 표준몸무게
+  from student
+ where weight >=표준몸무게; --(NO***)order by절 외에서는 select절에 정의된 컬럼 별칭을 사용할 수 없다.
+  
+select name, grade, height, weight, (height -100) * 0.9 as "AVERAGE WEIGHT"
+  from student
+ order by 'AVERAGE WEIGHT' desc; --(주의*** 'WEIGHT'는 데이터에 원래 존재하고 있는 컬럼이니 문자로 인식할 수 있게 ''표시) 
+ 
+--함수 : input값이 있으면 그에 대한 output이 있는 형태. 그 관계.
+--y = f(x)
+ 
+--함수의 분류
+--1. 단일행 함수 =>1대1 매칭
+--2. 복수행 함수 (그룹함수) =>sum, avg, count, min, max,.. 여러 개 행이 축약돼서 나오는 것
+
+--문자 함수 (문자를 넣고 문자를 return 받는 형식)
+--1. 대소치환 : upper, lower, initcap
+--  upper(ename) O, upper(ename, job)X(불가능)
+
+--2. 길이 : length, lengthb(b=byte) =>영어, 숫자는 length=lengthb, BUT 한글은 다름
+--length(컬럼 혹은 상수)
+select ename, length(ename), length('abcd')
+  from emp;
+  
+--lengthb(컬럼 혹은 상수) : 문자 크기(byte) 
+select ename, length(ename), lengthb(ename)
+  from emp;
+  
+--3. substr(원본문자열, 시작위치, [추출개수])=>위치 변경X: 문자열 추출(연속된 일부 구간)
+--추출개수 생략 시 문자열 끝까지 추출
+--시작위치가 음수이면 뒤에서부터 정방향으로 추출(스캔방향 정방향)
+select substr('abcd',1,2), substr('abcd',2)
+  from dual;
+  
+select substr('abcde',-3,2), substr('abcd',2)
+  from dual;    
+  
+--문제
+--emp에서 이름의 두 번째 글자가 'M'인 직원의 모든 정보 출력(substr)
+select *
+  from EMP
+ where ename like '_M%';
+  
+select *
+  from emp
+ where substr(ename,2,1)='M';----M이라는 글자 1개를 찾고 싶으니 (ename,2,1)
+ 
+--문제
+--professor에서 email 컬럼에 있는 email id만 추출 by using substr
+--captain@abc.ent =>captain
+
+select email,
+       instr(email, '@') as "@의 위치",
+       instr(email, '@') -1 as "추출개수", 
+       substr(email, 1, instr(email, '@') -1)
+  from professor;                           
+
+select email, substr(email,1, instr(email, '@'))
+  from professor;
+ 
+ 
+--instr(원본문자열, 검색대상[, 스캔위치, 발견된 횟수]) : 위치를 return /위치 변경 NO
+--스캔 위치 생략 시 처음부터 스캔 (default : 1)
+--발견된 횟수 생략 시 첫 번째 발견된 문자의 위치 리턴 (default : 1)
+--스캔위치가 음수이면 역으로 스캔 BUT 역방향
+--대소구분
+--찾는 문자열이 없으면 0을 리턴
+
+select email, instr(email, '@',1,1)
+  from professor;
+  
+select instr('abcdeabc', 'A'),
+       instr('abcdeabc', 'a', 1, 2),
+       instr('abcdeabc', 'a', -4),
+       instr('abcdeabc', 'b', 1,2),
+       instr('abcabcaba', 'a', -5, 2)
+  from dual;
+  
+
+--치환 : replace, translate
+--replace(원본문자열, 찾을문자열, 바꿀문자열) : 단어의 치환
+select replace('abccba','ab','AB'), replace('abccba','ab','ABC'),
+       replace('abccba','ab','')        --빈 문자열의 전달로 삭제 가능
+  from dual;
+
+select tel, replace(tel,')','-') as new_tel --055)381-2158 => 055-381-2158
+  from student;
+
+--translate(원본문자열, 찾을문자열, 바꿀문자열) : 글자의 치환
+select translate('abccba','ab','_!'), 
+       translate('abccba','ab','_!*'),  --찾을 문자열의 크기 < 바꿀문자열의 크기: 매칭되지 않는 글자 무시
+       translate('abccba','abc','AB'),  --찾을 문자열의 크기 > 바꿀문자열의 크기: 매칭되지 않는 글자 삭제
+       translate('abcdcba','1abc','1')  --a, b, c 모두 삭제하고싶은 경우 바꿀 문자열을 빈 문자로 두면 안되기 때문
+  from student;
+  
+--문제
+--student 테이블에서 각 학생의 주민번호를 아래와 같이 변경
+--7510231901813 => 751023XXXXXXX (마스킹화)
+select *
+  from student;
+
+select jumin,
+       replace(jumin, substr(jumin, 7), 'XXXXXX') as forbid_jumin
+  from student;
+  --OR--
+select jumin,
+       substr(jumin, 1, 6)||'XXXXXXX' as forbid_jumin
+  from student;
+
+--삽입함수 : lpad(왼쪽에 삽입), rpad(오른쪽에 삽입)
+--lpad(원본문자열, 총개수, 삽입문자열)
+select lpad('abc', 10, '*'),
+       rpad('abc', 10, '*')
+  from dual;
+ 
+select lpad(sal,4,'0')
+  from emp;
+
+
+--제거함수 : ltrim(왼쪽), rtrim(오른쪽), trim(양쪽 공백만 제거 가능 not 문자)
+--ltrim(원본문자열, [제거문자열])
+--제거문자열 생략 시 공백을 제거
+
+--trim(원본문자열) **중요**불필요한 공백을 가지고 있는 데이터가 있는 경우도 존재!
+--oracle에서는 공백 외 문자열은 삭제 불가
+
+select ltrim('aababcaa', 'a'), --제거할 대상이 아닌 순간 제거를 멈춤 so 중간에 있는 문자 삭제 불가능 =>babcaa
+       rtrim('aababcaa', 'a'),
+       ltrim('   aabab   '),
+       rtrim('   aabab   '),
+       trim('   aabab   '),
+       length(trim('   aabab   '))
+  from dual;
+        
+--**공백을 포함하는 컬럼의 경우 조건절 전달 시 trim 사용**--
+create table test01(
+col1 varchar2(10),      -- 가변형 문자 타입/고정되지 않음(사용자가 입력한 그대로)
+col2 char(10));           -- 고정형 문자 타입 =>무조건 10 byte
+
+insert into test01 values('a','a'); --첫번째는 1 byte, 두번째는 10 byte로 나머지는 공백
+commit;     --commit은 저장 명령어(영구저장)
+
+select length(col1), length(col2)
+  from test01;
+  
+select *
+   from test01
+  where col1=col2;    --조회X ->col2가 고정형 문자 타입이라 뒤에 9자의 공백이 붙어있음
+  
+select *
+   from test01
+  where col1=trim(col2);
+
+
+-- 날짜 데이터에서의 일부 추출(연도, 월, 일,...)
+select sysdate
+  from dual;            --현재 날짜와 시간(sysdate는 인수가 없음)
+  
+select sysdate,
+       substr(sysdate,1,4) as year1,     --잘 안됨 ->실제 데이터는 '21/07/08'
+       substr(sysdate,1,2) as year2
+  from dual;            
+  
+alter session set nls_date_format = 'YYYY/MM/DD';       --포맷을 변경한 거임/이제부터 다 이 포맷으로 실행
+select sysdate,
+       substr(sysdate,1,4) as "year",     
+       substr(sysdate,6,2) as "month",
+       substr(sysdate,9,2) as "day"
+  from dual;         
+
+select extract(year from sysdate) as "year",
+       extract(month from sysdate) as "month",
+       extract(day from sysdate) as "day"
+  from dual;                                        --포맷 변경하지 않아도 잘 출력 됨
+
+--문제
+--professor 테이블에서 각 교수의 이름, 학과 번호와 함께 입사일을 아래와 같은 형식으로 출력
+--1980/06/23 => 1980년 06월 23일
+select *
+  from professor;
+
+
+연습문제
+
+--0. professor 테이블에서 각 교수의 이름, 학과번호와 함께 입사일을 
+--아래와 같은 형식으로 출력
+--1980/06/23 => 1980년 06월 23일
+alter session set nls_date_format = 'YYYY/MM/DD';
+
+select name, deptno, hiredate, 
+       substr(hiredate,1,4)||'년',
+       substr(hiredate,6,2)||'월',
+       substr(hiredate,-2,2)||'월'
+  from professor;
+ 
+select name, deptno, hiredate, 
+       substr(hiredate,1,4)||'년 '||substr(hiredate,6,2)||'월 '||substr(hiredate,-2,2)||'일' as "New_Hiredate"
+  from professor;               --text에 띄어쓰기 해야 공백이 생김
+   
+select name, deptno, hiredate, 
+       extract(year from hiredate)||'년 '||
+       extract(month from hiredate)||'월 '|| 
+       extract(day from hiredate)||'일' as "New_Hiredate"
+  from professor;       --추천!!!! 
+  
+--1. student 테이블에서 10월에 태어난 학생의
+--이름, 학년, 생년월일을 출력하되
+--태어난 일이 작은순서대로 정렬하여라. (order by)
+  
+alter session set nls_date_format = 'YYYY/MM/DD';   --YYYY/MM/DD
+select name,
+       grade,
+       birthday
+  from student
+ where substr(birthday, 6, 2)='10'
+  order by substr(birthday, 9, 2) asc;  
+  
+select name,grade,birthday
+  from student
+ where jumin like '__10%'
+ order by extract (day from birthday);
+ 
+select name,grade,birthday
+  from student
+ where substr(jumin,3,2)='10'  --substr은 문자로 리턴 =>10은 문자로='10'
+ order by substr(jumin,5,2);
+ 
+select name,grade,birthday
+  from student
+ where extract (month from birthday)=10      --extract은 특정 날짜 추출 후 숫자로 리턴=>10을 문자로 표현
+ order by extract (day from birthday);
+ 
+--2. 학생 테이블(student)을 사용하여 모든 학생들이 
+--'서진수 의 키는 180 cm, 몸무게는 55 kg 입니다' 
+--와 같은 형식으로 출력 되도록하고 , 
+--컬럼이름은 “학생의 키와 몸무게”라는 별명으로 출력
+
+select name ||'의 키는'|| height|| 'cm,' || ' 몸무게는 '|| weight ||'kg 입니다.' as "학생의 키와 몸무게"
+  from student;             --OK!!!
+--대부분 ''쓰고 as(alias) 쓸때에는 ""씀
+
+--3. student 테이블에서 각 학생의 전화번호를 아래와 같이 변경
+--051)426-1700  => 051)XXX-1700
+--02)6255-9875  => 02)XXXX-9875
+----방법1) 연결연산자(추출시작 위치, 몇 개 가져올지 다 다르니, 상수가 아닌 문자로 가져와야함)
+
+--먼저 바꿔야 할 것들을 한두개 예로 들어 추출해서 써보는 것이 편함
+--055)381-2158 substr (055)381-215,5,3)
+--02)6255-9875 substr (02)6255-9875,4,4)
+----방법2)
+select tel,
+       instr(tel,')') as ") 의 위치",
+       instr(tel,'-') as "- 의 위치",
+       instr(tel,'-')-instr(tel,')')-1 as "추출개수",
+       substr(tel, 
+              instr(tel,')')+1, 
+              instr(tel,'-')-instr(tel,')')-1) as "추출된 국번",
+       replace(tel,
+              substr(tel, instr(tel,')')+1, instr(tel,'-')-instr(tel,')')-1),  --국번 선택(찾을 문자열)
+              'XXX') as "마스킹 1",
+       replace(tel,
+              substr(tel, instr(tel,')')+1, instr(tel,'-')-instr(tel,')')-1),  --국번 선택(찾을 문자열)
+              lpad('X', 
+                    instr(tel,'-')-instr(tel,')')-1,         --추출개수만큼 X를 반복하기 위해
+                    'X')) as "마스킹 2"
+  from student;     --정답!!!!! 
+  
+select lpad('X',4,'X')
+  from dual;
+
+
+--4. EMPLOYEES 테이블에서 대소를 구분하지 않고 
+--email에 last_name이 포함되어 있지 않은 
+--사람의 EMPLOYEE_ID, FIRST_NAME, EMAIL을 출력하여라.
+--(EMPLOYEES 테이블은 hr 계정에서 조회 가능)
+
+select EMPLOYEE_ID, FIRST_NAME, LAST_NAME, EMAIL
+  from employees
+ where email not like '%'||upper(LAST_NAME)||'%';            --정답!!!!!!!!
+ 
+select last_name, email,
+       instr(email, upper(last_name))       --email에 upper(last_name)이 포함되어 있으면 위치값, 없으면 0 리턴
+  from employees
+ where instr(email, upper(last_name))=0;
+ 
+select instr('abcd', 'c')
+  from dual;
+ 
+select replace('dfd dfd', ' ', '') from dual;       --중간에 있는 공백 삭제 가능
+select trim ('  dfd dfd  ') from dual;                --중간에 있는 공백 삭제 불가
+
+select EMPLOYEE_ID, FIRST_NAME, LAST_NAME, EMAIL
+  from employees; 
+
+
+--OConnell DOCONNEL (X)
+--Grant DGRANT (O)
+--Whalen JWHALEN (O)
+
